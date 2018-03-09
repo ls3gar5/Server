@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using static ServerConsoleApp.Mapped;
 
@@ -61,7 +62,9 @@ namespace ServerConsoleApp
         private static void SetupServer()
         {
             Console.WriteLine("Server ON");
-            _serverSocet.Bind(new IPEndPoint(IPAddress.Any, 100));
+
+
+            _serverSocet.Bind(new IPEndPoint(IPAddress.Any, 804));
             _serverSocet.Listen(1); //Cuantas conexiones pendientes
             _serverSocet.BeginAccept(new AsyncCallback(AceeptCallback), null);
         }
@@ -75,6 +78,9 @@ namespace ServerConsoleApp
             _serverSocet.BeginAccept(new AsyncCallback(AceeptCallback), null);
         }
 
+        static int nroLlamada;
+        static Random rnd = new Random();
+
         private static void RecieveCallback(IAsyncResult AR)
         {
             //_clientSockets.Add(socket); vienen de esa linea
@@ -83,22 +89,29 @@ namespace ServerConsoleApp
             byte[] dataBuf = new byte[received];
             Array.Copy(_buffer, dataBuf, received);
 
-            string text = Encoding.ASCII.GetString(dataBuf);
-            //string text = Encoding.Unicode.GetString(dataBuf,0,received);
+            //string text = Encoding.ASCII.GetString(dataBuf);
+            string text = Encoding.Unicode.GetString(dataBuf,0,received);
             Console.WriteLine("texto: " + text);
 
             string reponse = string.Empty;
 
             if (text.ToLower() != "get time")
             {
-                reponse = "Invaled Request";
+                nroLlamada++;
+                reponse = "Invaled Request " + nroLlamada.ToString();
             }
             else
             {
                 reponse = DateTime.Now.ToLongTimeString();
             }
 
-            byte[] data = Encoding.ASCII.GetBytes(reponse);
+            //ACA CONSULTA AL SERVICIO///
+            int time = rnd.Next(10000, 20000);
+            Thread.Sleep(time);
+            reponse += " " + time.ToString();
+
+            //byte[] data = Encoding.ASCII.GetBytes(reponse);
+            byte[] data = Encoding.Unicode.GetBytes(reponse);
             socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallBack), socket);
             socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(RecieveCallback), socket);
         }

@@ -17,9 +17,13 @@ namespace ServerFromApp
     public partial class frmCliente : Form
     {
         SocketPermission permission;
-        Socket sListener;
-        IPEndPoint ipEndPoint;
+
+        private static List<Socket> _clientSockets = new List<Socket>();
+
         Socket handler;
+        Socket _serverSocet = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        IPEndPoint ipEndPoint;
+        
         Dispatcher dispatcher;
 
         private static ManualResetEvent allDone = new ManualResetEvent(false);
@@ -42,11 +46,7 @@ namespace ServerFromApp
             dispatcher = Dispatcher.CurrentDispatcher;
 
             StartServer();
-            StartListen();
-            //oWorkerBurn = new BackgroundWorker();
-            //oWorkerBurn.WorkerSupportsCancellation = true;
-            //oWorkerBurn.DoWork += OWorkerBurn_DoWork;
-            //oWorkerBurn.RunWorkerCompleted += OWorkerBurn_RunWorkerCompleted;
+            //StartListen();
         }
         
         //private void OWorkerBurn_DoWork(object sender, DoWorkEventArgs e)
@@ -142,14 +142,6 @@ namespace ServerFromApp
            );
         }
 
-
-        //public bool StartServerApp()
-        //{
-        //    oWorkerBurn.RunWorkerAsync();
-
-        //    return true;
-        //}
-
         private void StartServer()
         {
             try
@@ -165,46 +157,24 @@ namespace ServerFromApp
                 // Ensures the code to have permission to access a Socket 
                 permission.Demand();
 
-                // Listening Socket object 
-                sListener = null;
-
                 // Resolves a host name to an IPHostEntry instance 
-                IPHostEntry ipHost = Dns.GetHostEntry("");
+                // IPHostEntry ipHost = Dns.GetHostEntry("");
 
                 // Gets first IP address associated with a localhost 
-                IPAddress ipAddr = ipHost.AddressList.First(f => f.AddressFamily != AddressFamily.InterNetworkV6);
-
+                // IPAddress ipAddr = ipHost.AddressList.First(f => f.AddressFamily != AddressFamily.InterNetworkV6);
                 // Creates a network endpoint 
-                ipEndPoint = new IPEndPoint(ipAddr, DEFAULT_PORT);
 
+                //ipEndPoint = new IPEndPoint(ipAddr, DEFAULT_PORT);
+                // ipEndPoint = new IPEndPoint(IPAddress.Any, DEFAULT_PORT);
                 // Create one Socket object to listen the incoming connection 
-                sListener = new Socket(
-                    ipAddr.AddressFamily,
-                    SocketType.Stream,
-                    ProtocolType.Tcp);
 
-                sListener.Bind(ipEndPoint);
+                _serverSocet.Bind(new IPEndPoint(IPAddress.Any, DEFAULT_PORT));
+                _serverSocet.Listen(10);
+                _serverSocet.BeginAccept(new AsyncCallback(AccepCallBack), null);
 
-                lblStatus.Text += "Server Conectado!!! + \n" ;
-
-
-            }
-            catch (Exception exc)
-            {
-                MessageBox.Show(exc.ToString());
-            }
-        }
-
-        private void StartListen()
-        {
-            try
-            {
-                // Places a Socket in a listening state and specifies the maximum 
-                // Length of the pending connections queue 
-                sListener.Listen(10);
-                sListener.BeginAccept(new AsyncCallback(AccepCallBack), sListener);
-
+                lblStatus.Text += "Server Conectado!!! + \n";
                 lblStatus.Text += "Server is now listening on " + ipEndPoint.Address.ToString() + " port: " + ipEndPoint.Port.ToString() + "\n";
+
             }
             catch (Exception exc)
             {
@@ -212,8 +182,7 @@ namespace ServerFromApp
             }
         }
         
-
-        private void AccepCallBack(IAsyncResult ar)
+        private void AccepCallBack(IAsyncResult AR)
         {
             Socket listener = null;
             // A new Socket to handle remote host communication 
@@ -224,9 +193,9 @@ namespace ServerFromApp
                 //Receiving byte array 
                 byte[] buffer = new byte[1024];
                 // Get Listening Socket object
-                listener = (Socket)ar.AsyncState;
+                listener = (Socket)AR.AsyncState;
                 // Create a new socket 
-                handler = listener.EndAccept(ar);
+                handler = listener.EndAccept(AR);
                 // Using the Nagle algorithm
                 handler.NoDelay = false;
 
@@ -358,10 +327,10 @@ namespace ServerFromApp
         {
             try
             {
-                if (sListener.Connected)
+                if (_serverSocet.Connected)
                 {
-                    sListener.Shutdown(SocketShutdown.Receive);
-                    sListener.Close();
+                    _serverSocet.Shutdown(SocketShutdown.Receive);
+                    _serverSocet.Close();
                 }
             }
             catch (Exception exc)
