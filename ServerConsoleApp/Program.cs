@@ -104,7 +104,6 @@ namespace ServerConsoleApp
             {
                 reponse = DateTime.Now.ToLongTimeString();
             }
-
             //ACA CONSULTA AL SERVICIO///
             int time = rnd.Next(10000, 20000);
             Thread.Sleep(time);
