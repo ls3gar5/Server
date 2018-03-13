@@ -83,36 +83,47 @@ namespace ServerConsoleApp
 
         private static void RecieveCallback(IAsyncResult AR)
         {
-            //_clientSockets.Add(socket); vienen de esa linea
-            Socket socket = (Socket)AR.AsyncState;
-            int received = socket.EndReceive(AR);
-            byte[] dataBuf = new byte[received];
-            Array.Copy(_buffer, dataBuf, received);
-
-            //string text = Encoding.ASCII.GetString(dataBuf);
-            string text = Encoding.Unicode.GetString(dataBuf,0,received);
-            Console.WriteLine("texto: " + text);
-
-            string reponse = string.Empty;
-
-            if (text.ToLower() != "get time")
+            try
             {
-                nroLlamada++;
-                reponse = "Invaled Request " + nroLlamada.ToString();
-            }
-            else
-            {
-                reponse = DateTime.Now.ToLongTimeString();
-            }
-            //ACA CONSULTA AL SERVICIO///
-            int time = rnd.Next(10000, 20000);
-            Thread.Sleep(time);
-            reponse += " " + time.ToString();
+                //_clientSockets.Add(socket); vienen de esa linea
+                Socket socket = (Socket)AR.AsyncState;
+                int received = socket.EndReceive(AR);
+                byte[] dataBuf = new byte[received];
+                Array.Copy(_buffer, dataBuf, received);
 
-            //byte[] data = Encoding.ASCII.GetBytes(reponse);
-            byte[] data = Encoding.Unicode.GetBytes(reponse);
-            socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallBack), socket);
-            socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(RecieveCallback), socket);
+                //string text = Encoding.ASCII.GetString(dataBuf);
+                string text = Encoding.Unicode.GetString(dataBuf, 0, received);
+                Console.WriteLine("texto: " + text);
+
+                string reponse = string.Empty;
+
+                if (text.ToLower() != "get time")
+                {
+                    nroLlamada++;
+                    reponse = "Invaled Request " + nroLlamada.ToString();
+                }
+                else
+                {
+                    reponse = DateTime.Now.ToLongTimeString();
+                }
+                //ACA CONSULTA AL SERVICIO///
+                int time = rnd.Next(5000, 10000);
+                Thread.Sleep(time);
+                reponse += " " + time.ToString();
+
+                //byte[] data = Encoding.ASCII.GetBytes(reponse);
+                byte[] data = Encoding.Unicode.GetBytes(reponse);
+                socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallBack), socket);
+                socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(RecieveCallback), socket);
+            }
+            catch (SocketException se)
+            {
+                var ver = se.ErrorCode;
+
+            }catch  (Exception e)
+            {
+                var ver = e.Message;
+            }
         }
 
         private static void SendCallBack(IAsyncResult AR)
